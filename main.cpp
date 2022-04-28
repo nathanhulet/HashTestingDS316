@@ -57,6 +57,10 @@ Coding modifications included the original work with permission: copyright (c) 1
 #include "Complexity_Recorder.hpp"
 #include "arrayHash.h"
 #include "chainingArray.h"
+#include "myHash.h"
+#include "myList.h"
+
+
 
 // timer
 timer timer1;
@@ -67,11 +71,11 @@ typedef int U;
 //experiment will involve timing of 3 structures and that the number of "trials" will be 7. By a trial is meant timing of the algorithm for inputs of a single length;
 // rather than taking a single such measurement we take seven measurements with different randomly generated inputs and compute their median. (The median computation is done
 // in class recorder.) The median is used here rather than the mean because it is less susceptible to fluctuation due to possibly large fluctuations in the individual times.
-const int number_of_structures = 2;
+const int number_of_structures = 4;
 const int number_of_trials = 7;
 
 // FACTOR is &&&&&
-const int FACTOR = 10000;  // <==== this will influence the N (size of the problem)
+const int FACTOR = 100;  // <==== this will influence the N (size of the problem)
 
 
 // self written hash table using dynamic arrays for separate chaining
@@ -81,20 +85,22 @@ const int FACTOR = 10000;  // <==== this will influence the N (size of the probl
 
 //output headers
 const char* delete_headings[number_of_structures] =
-        {"| Array Hash del ",
-         "| Quad Hash del  "};
+        {"|small Array del ",
+         "|  small LL del  ",
+         "|  big Array del ",
+         "|   big LL del   "};
 
 const char* push_back_headings[number_of_structures] =
-        {"| Array Hash add ",
-         "| Quad Hash add  "};
+        {"|small Array add ",
+         "|  small LL add  ",
+         "|  big Array add ",
+         "|   big LL add   "};
 
 const char* search_headings[number_of_structures] =
-        {"|Array Hash search",
-         "| Quad Hash search"};
-
-const char* insert_headings[number_of_structures] =
-        {"|array Hash B-size",
-         "| Quad Hash B-size"};
+        {"|sm Array search ",
+         "|  sm LL search  ",
+         "|big Array search",
+         "|  big LL search "};
 
 
 
@@ -109,13 +115,6 @@ int main()
 
     // this is going to hold the measurements
     std::vector<recorder<timer> > stats(number_of_structures);
-
-    // declaration of testing structures and support sturctures
-    std::vector<U> testValues;
-    // my hash table
-    arrayHash myArrayHash(100);
-    // quadratic probing hash table
-    // quadHash quadHashTable(100);
 
     // The times are taken for short computations by repeating those computations a number of times
     // (controlled by the variable repetitions), so that they take long enough to register nonzero times.
@@ -138,23 +137,8 @@ int main()
 
         number = N0 * FACTOR;
 
-        // load them up
-        for (int i = 0; i < number; ++i)
-            testVector.push_back(i);
-
-        for (int i = 0; i < number; ++i)
-        {
-            mySTList.push_back(i);
-        }
-        for (int i = 0; i < number; ++i)
-        {
-            myList.addBack(i);
-        }
         cout << std::setw(4) << N0 << std::flush;
         ofs << std::setw(4) << N0;
-
-        replaceVector = testVector;
-        otSTList = mySTList;
 
         for (int i = 0; i < number_of_structures; ++i)
             stats[i].reset();
@@ -168,32 +152,51 @@ int main()
             {
                 for (int k = 0; k < repetitions; ++k) {
                     if (i == 0) {
+                        // my hash table SMALL
+                        arrayHash smallArray(10);
+                        for (int f = 0; f < number; ++f) {
+                            smallArray.insert(f);
+                        }
                         timer1.restart();
-                        myList.erase();
-                    } else if (i == 1) {
-                        timer1.restart();
-                        otSTList.erase(otSTList.begin(), otSTList.end());
-                    } else {
-                        timer1.restart();
-                        testVector.erase(testVector.begin(), testVector.end());
+                        for (int m = 0; m < number; ++m) {
+                            smallArray.remove(m);
+                        }
                     }
-
+                    else if (i == 1){
+                        // linked list hash (created by Kevin Nguyen) SMALL
+                        myHash smallLinkedList(10);
+                        for (int f = 0; f < number; ++f) {
+                            smallLinkedList.insert(f);
+                        }
+                        timer1.restart();
+                        for (int m = number - 1; m > 0; --m) {
+                            smallLinkedList.del(m);
+                        }
+                    }
+                    else if (i == 2) {
+                        // my hash table BIG
+                        arrayHash bigArray(1000);
+                        for (int f = 0; f < number; ++f) {
+                            bigArray.insert(f);
+                        }
+                        timer1.restart();
+                        for (int m = 0; m < number; ++m) {
+                            bigArray.remove(m);
+                        }
+                    }
+                    else if (i == 3){
+                        // linked list hash (created by Kevin Nguyen) BIG
+                        myHash bigLinkedList(1000);
+                        for (int f = 0; f < number; ++f) {
+                            bigLinkedList.insert(f);
+                        }
+                        timer1.restart();
+                        for (int m = number - 1; m > 0; --m) {
+                            bigLinkedList.del(m);
+                        }
+                    }
                     timer1.stop();
                     stats[i].record(timer1);
-                    //
-                    // Notice here we restore because the operation we are testing removes everything
-                    // ------------------------------------------------------------------------------
-                    if (i == 0) {
-                        // our LL
-                        for (int z = 0; z < number; ++z) {
-                            myList.addBack(z);
-                        }
-                    } else if (i == 1) {
-                        otSTList = mySTList;  // list
-                    } else {
-                        testVector = replaceVector;  // vectors
-                    }
-                    // ------------------------------------------------------------------------------
                 }
             }
         } // end of trials loop
@@ -206,8 +209,6 @@ int main()
 
         cout << std::endl;
         ofs << std::endl;
-
-        x.clear();
 
         if (repetitions > 1)
             repetitions /= 2;
@@ -223,22 +224,15 @@ int main()
         cout << "|       Time     ";
     cout << std::endl;
 
-    // testing push_back
+    // testing append
     for (N0 = N1; N0 <= N2; N0 *= 2)
     {
 
-        number = N0 * FACTOR;
-
-        // ensure lists are clear
-        myList.erase();
-        testVector.erase(testVector.begin(), testVector.end());
-        otSTList.erase(otSTList.begin(), otSTList.end());
+        number = N0 * FACTOR * 10;
 
         cout << std::setw(4) << N0 << std::flush;
         ofs << std::setw(4) << N0;
 
-        y = x;
-        otSTList = mySTList;
 
         for (int i = 0; i < number_of_structures; ++i)
             stats[i].reset();
@@ -252,35 +246,33 @@ int main()
             {
                 for (int k = 0; k < repetitions; ++k) {
                     if (i == 0) {
+                        arrayHash hashArray(10);
                         timer1.restart();
                         for (int h = 0; h < number; ++h) {
-                            myList.addBack(h);
+                            hashArray.insert(h);
                         }
                     } else if (i == 1) {
+                        myHash hashLinkedList(10);
                         timer1.restart();
                         for (int h = 0; h < number; ++h) {
-                            otSTList.push_back(h);
-                        }
-                    } else {
-                        timer1.restart();
-                        for (int h = 0; h < number; ++h) {
-                            testVector.push_back(h);
+                            hashLinkedList.insert(h);
                         }
                     }
-
+                    else if (i == 2) {
+                        arrayHash hashArray(1000);
+                        timer1.restart();
+                        for (int h = 0; h < number; ++h) {
+                            hashArray.insert(h);
+                        }
+                    } else if (i == 3) {
+                        myHash hashLinkedList(1000);
+                        timer1.restart();
+                        for (int h = 0; h < number; ++h) {
+                            hashLinkedList.insert(h);
+                        }
+                    }
                     timer1.stop();
                     stats[i].record(timer1);
-                    //
-                    // Notice here we erase because the operation we are testing adds everything
-                    // ------------------------------------------------------------------------------
-                    if (i == 0) {
-                        myList.erase(); // my list
-                    } else if (i == 1) {
-                        otSTList.erase(otSTList.begin(), otSTList.end());  // lists
-                    } else {
-                        testVector.erase(testVector.begin(), testVector.end());  //vectors
-                    }
-                    // ------------------------------------------------------------------------------
                 }
             }
         } // end of trials loop
@@ -293,8 +285,6 @@ int main()
 
         cout << std::endl;
         ofs << std::endl;
-
-        x.clear();
 
         if (repetitions > 1)
             repetitions /= 2;
@@ -315,19 +305,6 @@ int main()
 
         number = N0 * FACTOR;
 
-        // load them up with the same list of numbers
-        for (int i = 0; i <= number; ++i) {
-            testVector.push_back(i);
-        }
-        for (int i = 0; i <= number; ++i)
-        {
-            otSTList.push_back(i);
-        }
-        for (int i = 0; i <= number; ++i)
-        {
-            myList.addBack(i);
-        }
-
         cout << std::setw(4) << N0 << std::flush;
         ofs << std::setw(4) << N0;
 
@@ -341,31 +318,50 @@ int main()
             // (The repetitions FACTOR is divided out when the time is later reported on the output stream.)
             for (int i = 0; i < number_of_structures; ++i)
             {
-                // the number to search for is right before the end of the list
-                int searchFor = number - 1;
                 for (int k = 0; k < repetitions; ++k) {
                     if (i == 0) {
+                        arrayHash hashArray(10);
+                        for (int h = 0; h < number; ++h) {
+                            hashArray.insert(h);
+                        }
                         timer1.restart();
-                        auto useless = myList.search(searchFor);
+                        for (int h = 0; h < number; ++h) {
+                            hashArray.search(h);
+                        }
                     } else if (i == 1) {
+                        myHash hashLinkedList(10);
+                        for (int h = 0; h < 0; ++h) {
+                            hashLinkedList.insert(h);
+                        }
                         timer1.restart();
-                        auto useless = std::count(otSTList.begin(), otSTList.end(), searchFor);
-
-                    } else {
-                        timer1.restart();
-                        auto useless = std::count(testVector.begin(), testVector.end(), searchFor);
+                        for (int h = 0; h < 0; ++h) {
+                            hashLinkedList.isIn(h);
+                        }
                     }
-
+                    if (i == 2) {
+                        arrayHash hashArray(1000);
+                        for (int h = 0; h < number; ++h) {
+                            hashArray.insert(h);
+                        }
+                        timer1.restart();
+                        for (int h = 0; h < number; ++h) {
+                            hashArray.search(h);
+                        }
+                    } else if (i == 3) {
+                        myHash hashLinkedList(1000);
+                        for (int h = 0; h < number; ++h) {
+                            hashLinkedList.insert(h);
+                        }
+                        timer1.restart();
+                        for (int h = 0; h < number; ++h) {
+                            hashLinkedList.isIn(h);
+                        }
+                    }
                     timer1.stop();
                     stats[i].record(timer1);
                 }
             }
         } // end of trials loop
-
-        // lists are erased so that a new number of elements can be added
-        myList.erase(); // my list
-        otSTList.erase(otSTList.begin(), otSTList.end());
-        testVector.erase(testVector.begin(), testVector.end());
 
         for (int i = 0; i < number_of_structures; ++i)
         {
@@ -375,174 +371,12 @@ int main()
 
         cout << std::endl;
         ofs << std::endl;
-
-        x.clear();
-
-        if (repetitions > 1)
-            repetitions /= 2;
-    }
-
-    // testing sorted search
-    for (N0 = N1; N0 <= N2; N0 *= 2) {
-
-        number = N0 * FACTOR;
-
-        // load them up with the same list of numbers
-        for (int i = 0; i <= number; ++i) {
-            testVector.push_back(i);
-        }
-        for (int i = 0; i <= number; ++i)
-        {
-            otSTList.push_back(i);
-        }
-        for (int i = 0; i <= number; ++i)
-        {
-            myList.addBack(i);
-        }
-
-        cout << std::setw(4) << N0 << std::flush;
-        ofs << std::setw(4) << N0;
-
-        for (int i = 0; i < number_of_structures; ++i)
-            stats[i].reset();
-
-        for (int j = 0; j < number_of_trials; ++j)
-        {
-
-            // Notice here we repeat the computation repetitions # of times, not for each one, and we record the total time.
-            // (The repetitions FACTOR is divided out when the time is later reported on the output stream.)
-            for (int i = 0; i < number_of_structures; ++i)
-            {
-                // the number to search for is right before the end of the list
-                int searchFor = number - 1;
-                for (int k = 0; k < repetitions; ++k) {
-                    if (i == 0) {
-                        timer1.restart();
-                        auto useless = myList.sortedSearch(searchFor);
-                    } else if (i == 1) {
-                        timer1.restart();
-                        auto useless = std::count(otSTList.begin(), otSTList.end(), searchFor);
-
-                    } else {
-                        timer1.restart();
-                        auto useless = std::count(testVector.begin(), testVector.end(), searchFor);
-                    }
-
-                    timer1.stop();
-                    stats[i].record(timer1);
-                }
-            }
-        } // end of trials loop
-        // structures are erases to add new elements for a new search
-        myList.erase(); // my list
-        otSTList.erase(otSTList.begin(), otSTList.end()); // stl list
-        testVector.erase(testVector.begin(), testVector.end()); // vector
-
-        for (int i = 0; i < number_of_structures; ++i)
-        {
-            stats[i].report(cout, repetitions);
-            stats[i].report(ofs, repetitions);
-        }
-
-        cout << std::endl;
-        ofs << std::endl;
-
-        x.clear();
-
-        if (repetitions > 1)
-            repetitions /= 2;
-    }
-
-
-    cout << "\n\n____";
-    for (auto & delete_heading : insert_headings)
-        cout << delete_heading;
-    cout << std::endl;
-
-    cout << "Size";
-    for (int i = 0; i < number_of_structures; ++i)
-        cout << "|       Time     ";
-    cout << std::endl;
-
-
-
-    // testing insert right before mid
-    for (N0 = N1; N0 <= N2; N0 *= 2) {
-
-        number = N0 * FACTOR;
-
-        //inserts are fast, so I multiplied the factor by 10 to achieve clearer results
-        number *= 10;
-
-        // load them up with the same list of numbers
-        for (int i = 0; i <= number; ++i) {
-            testVector.push_back(i);
-        }
-        for (int i = 0; i <= number; ++i)
-        {
-            otSTList.push_back(i);
-        }
-        for (int i = 0; i <= number; ++i)
-        {
-            myList.addBack(i);
-        }
-
-        cout << std::setw(4) << N0 << std::flush;
-        ofs << std::setw(4) << N0;
-
-        for (int i = 0; i < number_of_structures; ++i)
-            stats[i].reset();
-
-        for (int j = 0; j < number_of_trials; ++j)
-        {
-
-            // Notice here we repeat the computation repetitions # of times, not for each one, and we record the total time.
-            // (The repetitions FACTOR is divided out when the time is later reported on the output stream.)
-            for (int i = 0; i < number_of_structures; ++i)
-            {
-                int searchFor =  (number / 2) - 2;
-                for (int k = 0; k < repetitions; ++k) {
-                    if (i == 0) {
-                        timer1.restart();
-                        auto node = myList.sortedSearch(searchFor);
-                        myList.insertNode(node, searchFor);
-                    } else if (i == 1) {
-                        timer1.restart();
-                        auto itPos = otSTList.begin();
-                        std::advance(itPos, searchFor);
-                        otSTList.insert(itPos, searchFor);
-
-                    } else {
-                        timer1.restart();
-                        auto itPos = testVector.begin();
-                        std::advance(itPos, searchFor);
-                        testVector.insert(itPos, searchFor);
-                    }
-
-                    timer1.stop();
-                    stats[i].record(timer1);
-                }
-            }
-        } // end of trials loop
-        myList.erase(); // my list
-        otSTList.erase(otSTList.begin(), otSTList.end());
-        testVector.erase(testVector.begin(), testVector.end());
-
-        for (int i = 0; i < number_of_structures; ++i)
-        {
-            stats[i].report(cout, repetitions);
-            stats[i].report(ofs, repetitions);
-        }
-
-        cout << std::endl;
-        ofs << std::endl;
-
-        x.clear();
 
         if (repetitions > 1)
             repetitions /= 2;
     }
 
     return 0;
-
 }
+
+
